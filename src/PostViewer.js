@@ -16,7 +16,7 @@ export const GET_USERS = gql`
 `;
 
 export default () => (
-  <Query query={GET_USERS} pollInterval={5000}>
+  <Query query={GET_USERS} pollInterval={50}>
     {({ loading, data,refetch }) => !loading && (
      
       <>

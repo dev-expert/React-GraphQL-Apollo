@@ -1,6 +1,7 @@
 const express=require('express');
 const graphqlHTTP=require('express-graphql');
-const {GraphQLSchema,GraphQLObjectType,GraphQLInt,GraphQLString,GraphQLList,graphql} =require("graphql");
+const Mongoose=require("mongoose");
+const {GraphQLSchema,GraphQLNonNull,GraphQLObjectType,GraphQLInt,GraphQLString,GraphQLList,graphql} =require("graphql");
 var cors = require('cors');
 
 const users=[
@@ -9,11 +10,23 @@ const users=[
   {id:3,name:"John Doe",age:24},
 ];
 
+
+const app=express();
+
+
+
+Mongoose.connect("mongodb://localhost/graph_mongo");
+
+const UserModel=Mongoose.model("users",{
+  name:String,
+  age:Number
+});
+
 const UserType=new GraphQLObjectType({
   name:'Users',
   fields:{
     id:{
-      type:GraphQLInt
+      type:GraphQLString
     },
     name:{
       type:GraphQLString
@@ -25,7 +38,6 @@ const UserType=new GraphQLObjectType({
   }
 });
 
-
 const schema=new GraphQLSchema({
   query:new GraphQLObjectType({
     name:'Query',
@@ -33,18 +45,20 @@ const schema=new GraphQLSchema({
       users:{
         type:GraphQLList(UserType),
         resolve:(parent,args)=>{
-          return users;
+          //return users;
+          return UserModel.find().exec();
         }
       },
       user:{
         type:UserType,
         args:{
           id:{
-            type:GraphQLInt
+            type:GraphQLNonNull(GraphQLString)
           }
         },
-        resolve:(parent,{id})=>{
-          return users.find(user=>user.id === id);
+        resolve:(parent,args)=>{
+          //return users.find(user=>user.id === id);
+          return UserModel.findById(args.id).exec();
         }
       },
       multipleUser:{
@@ -67,9 +81,6 @@ const schema=new GraphQLSchema({
         createUser:{
           type:UserType,
           args:{
-            id:{
-              type:GraphQLInt
-            },
             name:{
               type:GraphQLString
             },
@@ -78,10 +89,13 @@ const schema=new GraphQLSchema({
             }
           },
           resolve:(parent,args)=>{
-            users.push(args);
-            return args;
+            //users.push(args);
+            //return args;
+            var user=new UserModel(args);
+            return user.save();
           }
         },
+        
         updateUser:{
           type:UserType,
           args:{
@@ -106,7 +120,6 @@ const schema=new GraphQLSchema({
   )
  
 });
-const app=express();
 
 // Then use it before your routes are set up:
 app.use(cors());
@@ -115,7 +128,6 @@ app.use('/graphql',graphqlHTTP({
   schema,
   graphiql:true
 }))
-
 
 app.listen(5000,()=>console.log("Listen done 5000"))
 
